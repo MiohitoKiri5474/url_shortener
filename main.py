@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-import random, sqlite3, os
+import random, sqlite3, os, bcrypt
 
 import url_db, user_db
 
@@ -21,17 +21,6 @@ app = FastAPI()
 def raise_bad_request (message):
     raise HTTPException (status_code = 400, detail = message)
 
-def query (url: str):
-    conn = sqlite3.connect (url_db.url_db_path)
-    cursor = conn.cursor()
-    cursor.execute ('''SELECT url FROM url_mapping WHERE code = ?''', (url,))
-    result = cursor.fetchone()
-    conn.close()
-
-    if result:
-        return result[0]
-    return None
-
 def create_random_url() -> str:
     res = ""
     lib = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -39,6 +28,17 @@ def create_random_url() -> str:
     for i in range (8):
         res += lib[random.randint (0, len (lib))]
     return res
+
+def hash_passwd (ori_passwd: str) -> str:
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw (passwd.encode ('utf-8'), salt)
+
+def verify_user (name: str, passwd: str) -> bool:
+    try:
+        result = bcrypt.checkpw (passwd.encode ('utf-8'), user_db.get_passwd (name))
+        return result
+    except ValueError as error:
+        raise ValueError (str (error))
 
 @app.get ('/')
 async def read_root():
@@ -48,41 +48,36 @@ async def read_root():
 async def create_url (url: URLAdminInfo):
     if url.admin_url == "":
         url.admin_url = create_random_url()
+        while not url_db.check_admin_code_is_available (url.admin_url):
+            url.admin_url = create_random_url()
 
     try:
-        insert_url (url.admin_url, url.original_url)
+        url_db.insert_url (url.admin_url, url.original_url)
         return url.admin_url + " -> " + url.original_url
     except ValueError as error:
         return str (error)
 
 @app.get ("/r/{url}")
 async def get_url (url: str):
-    if check_admin_code_is_available (url):
+    if url_db.check_admin_code_is_available (url):
         return "This admin url is not exist.\n"
 
-    update_click_count (url)
+    url_db.update_click_count (url)
 
-    return RedirectResponse (query (url))
+    return RedirectResponse (url_db.query (url))
 
 @app.get ("/list/")
 async def list_url ():
-    conn = sqlite3.connect (url_db.url_db_path)
-    cursor = conn.cursor()
-    cursor.execute ('''SELECT code, url, clicks FROM url_mapping''')
-    all_mappings = cursor.fetchall()
-    cursor.close()
-
-    return all_mappings
+    return url_db.list()
 
 @app.delete ("/url_delete/{url}")
 async def delete_url (url: str):
-    if check_admin_code_is_available (url):
-        return "This admin url is not exist.\n"
+    try:
+        url_db.delete (url)
+        return url + " is successfully deleted.\n"
+    except ValueError as error:
+        return str (error)
 
-    conn = sqlite3.connect (url_db.url_db_path)
-    cursor = conn.cursor()
-    cursor.execute ('''DELETE FROM url_mapping WHERE code = ?''', (url,))
-    conn.commit()
-    conn.close()
-
-    return url + " is successfully deleted.\n"
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run (app, host = '0.0.0.0', port = 8000)
