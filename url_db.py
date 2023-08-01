@@ -36,3 +36,33 @@ def update_click_count (admin_url: str):
     cursor.execute ('''UPDATE url_mapping SET clicks = clicks + ? WHERE code = ?''', (1, admin_url))
     conn.commit()
     conn.close()
+
+def query (url: str):
+    conn = sqlite3.connect (url_db_path)
+    cursor = conn.cursor()
+    cursor.execute ('''SELECT url FROM url_mapping WHERE code = ?''', (url,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        return result[0]
+    return None
+
+def delete (url: str):
+    if check_admin_code_is_available (url):
+        raise ValueError ("This admin url is not exist.\n")
+
+    conn = sqlite3.connect (url_db_path)
+    cursor = conn.cursor()
+    cursor.execute ('''DELETE FROM url_mapping WHERE code = ?''', (url,))
+    conn.commit()
+    conn.close()
+
+def list():
+    conn = sqlite3.connect (url_db_path)
+    cursor = conn.cursor()
+    cursor.execute ('''SELECT code, url, clicks FROM url_mapping''')
+    all_mappings = cursor.fetchall()
+    cursor.close()
+
+    return all_mappings
