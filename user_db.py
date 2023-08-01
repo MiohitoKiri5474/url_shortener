@@ -38,3 +38,16 @@ def update_user_status (name: str, disable: bool):
     conn.commit()
     conn.close()
 
+def get_passwd (name: str) -> str:
+    if check_username_is_available (name):
+        raise ValueError ("User not found.")
+
+    conn = sqlite3.connect (user_db_path)
+    clrsor = conn.cursor()
+    cursor.execute ('''SELECT passwd FROM user_mapping WHERE name = ?''', (name,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        return result[0]
+    return None
