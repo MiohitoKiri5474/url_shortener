@@ -118,4 +118,4 @@ async def delete_url (url: str):
     conn.commit()
     conn.close()
 
-    return url + "is successfully deleted.\n"
+    return url + " is successfully deleted.\n"
