@@ -8,7 +8,7 @@ def build_user_db():
 
     conn = sqlite3.connect (user_db_path)
     cursor = conn.cursor()
-    cursor.execute ('''CREATE TABLE IF NOT EXISTS user_mapping (name TEXT PRIMARY KEY, passwd BLOB, full_name TEXT DEFAULT Nont, email TEXT DEFAULT None, disable BOOL DEFAULT True)''')
+    cursor.execute ('''CREATE TABLE IF NOT EXISTS user_mapping (name TEXT PRIMARY KEY, passwd BLOB, full_name TEXT DEFAULT Nont, email TEXT DEFAULT None, disable BOOL DEFAULT False)''')
     conn.commit()
     conn.close()
 
