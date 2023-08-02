@@ -8,7 +8,7 @@ def build_user_db():
 
     conn = sqlite3.connect (user_db_path)
     cursor = conn.cursor()
-    cursor.execute ('''CREATE TABLE IF NOT EXISTS user_mapping (name TEXT PRIMARY KEY, passwd TEXT, disable BOOL DEFAULT True)''')
+    cursor.execute ('''CREATE TABLE IF NOT EXISTS user_mapping (name TEXT PRIMARY KEY, passwd BLOB, full_name TEXT DEFAULT Nont, email TEXT DEFAULT None, disable BOOL DEFAULT True)''')
     conn.commit()
     conn.close()
 
@@ -21,13 +21,13 @@ def check_username_is_available (name: str):
 
     return result is None
 
-def insert_user (name: str, passwd: str):
+def insert_user (name: str, passwd, full_name: str, email: str):
     if not check_username_is_available (name):
         raise ValueError ("The chosen user name is alreadt taken, Please choose a different one.")
 
     conn = sqlite3.connect (user_db_path)
     cursor = conn.cursor()
-    cursor.execute ('''INSERT INTO user_mapping (name, passwd) VALUES (?, ?)''', (name, passwd))
+    cursor.execute ('''INSERT INTO user_mapping (name, passwd, full_name, email) VALUES (?, ?, ?, ?)''', (name, passwd, full_name, email))
     conn.commit()
     conn.close()
 
@@ -38,16 +38,28 @@ def update_user_status (name: str, disable: bool):
     conn.commit()
     conn.close()
 
-def get_passwd (name: str) -> str:
+def get_passwd (name: str):
+    if check_username_is_available (name):
+        raise ValueError ("User not found.")
+
+    try:
+        result = get_user_info (name)[1]
+        if result:
+            return result
+        raise ValueError ("User information not found.")
+    except ValueError as error:
+        raise ValueError (str(error))
+
+def get_user_info (name: str):
     if check_username_is_available (name):
         raise ValueError ("User not found.")
 
     conn = sqlite3.connect (user_db_path)
-    clrsor = conn.cursor()
-    cursor.execute ('''SELECT passwd FROM user_mapping WHERE name = ?''', (name,))
-    result = cursor.fetchone()
+    cursor = conn.cursor()
+    cursor.execute ('''SELECT name, passwd, full_name, email, disable FROM user_mapping WHERE name = ?''', (name,))
+    result = cursor.fetchall()
     conn.close()
 
     if result:
         return result[0]
-    return None
+    raise ValueError ("User information not found.")
