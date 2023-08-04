@@ -125,19 +125,6 @@ if user_db.check_username_is_available ('lltzpp'):
 async def read_root():
     return "Welcome to the URL shortener API"
 
-@app.post ("/url")
-async def create_url (url: URLAdminInfo):
-    if url.admin_url == "":
-        url.admin_url = create_random_url()
-        while not url_db.check_admin_code_is_available (url.admin_url):
-            url.admin_url = create_random_url()
-
-    try:
-        url_db.insert_url (url.admin_url, url.original_url)
-        return url.admin_url + " -> " + url.original_url
-    except ValueError as error:
-        return str (error)
-
 @app.get ("/r/{url}")
 async def get_url (url: str):
     if url_db.check_admin_code_is_available (url):
@@ -148,16 +135,8 @@ async def get_url (url: str):
     return RedirectResponse (url_db.query (url))
 
 @app.get ("/list/")
-async def list_url ():
-    return url_db.list()
-
-@app.delete ("/url_delete/{url}")
-async def delete_url (url: str):
-    try:
-        url_db.delete (url)
-        return url + " is successfully deleted.\n"
-    except ValueError as error:
-        return str (error)
+async def list_url (current_user: User = Depends (get_current_active_user)):
+    return url_db.list (current_user.username)
 
 @app.get ('/whoami/', response_model = User)
 async def read_me (current_user: User = Depends (get_current_active_user)):
@@ -182,6 +161,29 @@ async def user_login (form_data: OAuth2PasswordRequestForm = Depends()):
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post ('/add_url')
+async def adding_url_with_auth_token (url: URLAdminInfo, current_user: User = Depends (get_current_active_user)):
+    if url.admin_url == "":
+        url.admin_url = create_random_url()
+        while not url_db.check_admin_code_is_available (url.admin_url):
+            url.admin_url = create_random_url()
+
+    try:
+        url_db.insert_url (url.admin_url, url.original_url, current_user.username)
+        return url.admin_url + " -> " + url.original_url + " by. " + current_user.username
+    except ValueError as error:
+        return str (error)
+
+@app.delete ("/delete_url/{url}")
+async def delete_url_with_auth_token (url: str, current_user: User = Depends (get_current_active_user)):
+    try:
+        url_db.delete_url (url, current_user.username)
+        return url + " is successfully deleted.\n"
+    except ValueError as error:
+        return str (error)
+
+
 
 if __name__ == '__main__':
     import uvicorn
