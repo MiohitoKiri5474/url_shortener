@@ -13,11 +13,12 @@ This is a URL Shortener API (but it still working on log-in system).
 6. python-multipart
 7. python-jose
 8. passlib
+9. requests
 
 ## Installation
 
 ```sh=
-pip3 install fastapi pysqlite3 uvicorn pydantic bcrypt python-multipart python-jose passlib
+pip3 install fastapi pysqlite3 uvicorn pydantic bcrypt python-multipart python-jose passlib requests
 ```
 
 ## Run
