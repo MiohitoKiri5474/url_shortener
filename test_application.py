@@ -79,7 +79,10 @@ while (True):
         else:
             print (add_url (user_input[1], user_input[2]))
     elif user_input[0] == 'delete':
-        print (delete_url (user_input[1]))
+        if len (user_input) < 2:
+            print ('[Error]: This command needs more arguments.')
+        else:
+            print (delete_url (user_input[1]))
     elif user_input[0] == 'list':
         lit = list_url()
         user_info = whoami()
@@ -106,5 +109,12 @@ while (True):
         else:
             print ('Cannot find the logged-in user.')
         jwt_token = None
+    elif user_input[0] == 'help':
+        print ('login:\t\t\t\tUser login')
+        print ('logout:\t\t\t\tUser logout')
+        print ('whoami:\t\t\t\tDisplay user information')
+        print ('list:\t\t\t\tDisplay URL shortener create by user')
+        print ('add [original_url] [admin_url]: Create a URL shortener')
+        print ('delete [admin_url]:\t\tDetele URL shortener which admin_code is [admin_url]')
     else:
         print ('[Error]: Command not found.')
