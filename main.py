@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 import random, sqlite3, os, bcrypt
 
-import url_db, user_db
+import db, db
 
 SECRET_KEY = "7de99a859d0920dfb46628ab5af61dad0d618072863c2005e22cf06390639ca3"
 ALGORITHM = "HS256"
@@ -37,8 +37,7 @@ class Token (BaseModel):
 class TokenData (BaseModel):
     username: Union[str, None] = None
 
-user_db.build_user_db()
-url_db.build_url_db()
+db.build_db()
 app = FastAPI()
 
 pwd_context =  CryptContext (schemes = ["bcrypt"], deprecated = "auto")
@@ -56,7 +55,7 @@ def create_random_url() -> str:
     return res
 
 def decode_token (token) -> User:
-    user_info = user_db.get_user_info (token)
+    user_info = db.get_user_info (token)
     return User (
             username = user_info[0],
             passwd = user_info[1],
@@ -116,10 +115,10 @@ def create_access_token (data: dict, expires_delta: Union[timedelta, None] = Non
     encode_jwt = jwt.encode (to_encode, SECRET_KEY, algorithm = ALGORITHM)
     return encode_jwt
 
-if user_db.check_username_is_available ('admin'):
-    user_db.insert_user ('admin', get_password_hash ('admin'), 'Admin', 'admin@admin')
-if user_db.check_username_is_available ('lltzpp'):
-    user_db.insert_user ('lltzpp', get_password_hash ('alternate'), 'miohitokiri5474', 'lltzpp@gmail.com')
+if db.check_username_is_available ('admin'):
+    db.insert_user ('admin', get_password_hash ('admin'), 'Admin', 'admin@admin')
+if db.check_username_is_available ('lltzpp'):
+    db.insert_user ('lltzpp', get_password_hash ('alternate'), 'miohitokiri5474', 'lltzpp@gmail.com')
 
 @app.get ('/')
 async def read_root():
@@ -127,16 +126,16 @@ async def read_root():
 
 @app.get ("/r/{url}")
 async def get_url (url: str):
-    if url_db.check_admin_code_is_available (url):
+    if db.check_admin_code_is_available (url):
         return "This admin url is not exist.\n"
 
-    url_db.update_click_count (url)
+    db.update_click_count (url)
 
-    return RedirectResponse (url_db.query (url))
+    return RedirectResponse (db.query (url))
 
 @app.get ("/list/")
 async def list_url (current_user: User = Depends (get_current_active_user)):
-    return url_db.list (current_user.username)
+    return db.list (current_user.username)
 
 @app.get ('/whoami/', response_model = User)
 async def read_me (current_user: User = Depends (get_current_active_user)):
@@ -156,8 +155,8 @@ async def user_login (form_data: OAuth2PasswordRequestForm = Depends()):
 
     access_token_expires = timedelta (minutes = ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token (
-        data = {"sub": user_info.username},
-        expires_delta = access_token_expires
+            data = {"sub": user_info.username},
+            expires_delta = access_token_expires
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -166,11 +165,11 @@ async def user_login (form_data: OAuth2PasswordRequestForm = Depends()):
 async def adding_url_with_auth_token (url: URLAdminInfo, current_user: User = Depends (get_current_active_user)):
     if url.admin_url == "":
         url.admin_url = create_random_url()
-        while not url_db.check_admin_code_is_available (url.admin_url):
+        while not db.check_admin_code_is_available (url.admin_url):
             url.admin_url = create_random_url()
 
     try:
-        url_db.insert_url (url.admin_url, url.original_url, current_user.username)
+        db.insert_url (url.admin_url, url.original_url, current_user.username)
         return url.admin_url + " -> " + url.original_url + " by. " + current_user.username
     except ValueError as error:
         return str (error)
@@ -178,7 +177,7 @@ async def adding_url_with_auth_token (url: URLAdminInfo, current_user: User = De
 @app.delete ("/delete_url/{url}")
 async def delete_url_with_auth_token (url: str, current_user: User = Depends (get_current_active_user)):
     try:
-        url_db.delete_url (url, current_user.username)
+        db.delete_url (url, current_user.username)
         return url + " is successfully deleted.\n"
     except ValueError as error:
         return str (error)
