@@ -180,7 +180,7 @@ async def get_url(url: str):
 @app.get("/list/")
 async def list_url(current_user: User = Depends(get_current_active_user)):
     """list url shortener which is create by current user"""
-    return db.list(current_user.username)
+    return db.list_url(current_user.username)
 
 
 @app.get("/whoami/", response_model=User)
