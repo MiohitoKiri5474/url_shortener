@@ -23,3 +23,6 @@ node_modules
 package*.json
 __pycache__/
 .coverage
+.env
+.pytest_cache
+.coverage
