@@ -13,7 +13,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
-import db
+from app import db
 
 SECRET_KEY = "7de99a859d0920dfb46628ab5af61dad0d618072863c2005e22cf06390639ca3"
 ALGORITHM = "HS256"

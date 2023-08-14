@@ -21,3 +21,5 @@ node_modules
 
 *.db
 package*.json
+__pycache__/
+.coverage

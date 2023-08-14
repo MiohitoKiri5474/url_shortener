@@ -26,7 +26,7 @@ def build_db():
         passwd BLOB,
         full_name TEXT DEFAULT Nont,
         email TEXT DEFAULT None,
-        disable BOOL DEFAULT Fals
+        disable BOOL DEFAULT 1
         )"""
     )
     conn.commit()
@@ -143,6 +143,18 @@ def insert_user(name: str, passwd, full_name: str, email: str):
         "INSERT INTO user_mapping (name, passwd, full_name, email) VALUES (?, ?, ?, ?)",
         (name, passwd, full_name, email),
     )
+    conn.commit()
+    conn.close()
+
+
+def delete_user(name: str):
+    """delete user from database"""
+    if check_username_is_available(name):
+        raise ValueError("The chosen user name is not in our database.")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_mapping WHERE name = ?", (name,))
     conn.commit()
     conn.close()
 
