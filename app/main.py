@@ -244,4 +244,4 @@ async def delete_url_with_auth_token(
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, reload=True, host="0.0.0.0", port=8000)
