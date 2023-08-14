@@ -17,6 +17,7 @@ python-multipart = "^0.0.6"
 python-jose = "^3.3.0"
 passlib = "^1.7.4"
 requests = "^2.31.0"
+httpx = "^0.24.1"
 
 
 [tool.poetry.group.dev.dependencies]
