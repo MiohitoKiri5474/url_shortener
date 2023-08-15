@@ -43,6 +43,15 @@ class User(BaseModel):
     disable: Union[bool, None] = None
 
 
+class UserCreate(BaseModel):
+    """the BaseModel of user creating"""
+
+    username: str
+    passwd: str
+    full_name: Union[str, None] = None
+    email: Union[str, None] = None
+
+
 class Token(BaseModel):
     """the BaseModel of JWT token"""
 
@@ -78,16 +87,21 @@ def create_random_url() -> str:
     return res
 
 
-def decode_token(token) -> User:
+def decode_token(token):
     """decode JWT token into user information"""
-    user_info = db.get_user_info(token)
-    return User(
-        username=user_info[0],
-        passwd=user_info[1],
-        full_name=user_info[2],
-        email=user_info[3],
-        disable=user_info[4],
-    )
+    try:
+        user_info = db.get_user_info(token)
+        return User(
+            username=user_info[0],
+            passwd=user_info[1],
+            full_name=user_info[2],
+            email=user_info[3],
+            disable=user_info[4],
+        )
+    except ValueError as error:
+        raise_bad_request(str(error))
+
+    return None
 
 
 def verify_password(plain_password, hashed_password):
@@ -135,7 +149,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
     """get current active user"""
-    if current_user.disable:
+    if not current_user.disable:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
@@ -183,10 +197,15 @@ async def list_url(current_user: User = Depends(get_current_active_user)):
     return db.list_url(current_user.username)
 
 
-@app.get("/whoami/", response_model=User)
-async def read_me(current_user: User = Depends(get_current_active_user)):
+@app.get("/{username}", response_model=User)
+async def get_current_user_information(
+    username: str, current_user: User = Depends(get_current_active_user)
+):
     """get current user information"""
-    current_user.passwd = b"---"
+    if current_user.username == username:
+        current_user.passwd = b"---"
+    else:
+        raise_bad_request("Permission Denied.")
     return current_user
 
 
@@ -219,12 +238,28 @@ async def adding_url_with_auth_token(
         url.admin_url = create_random_url()
         while not db.check_admin_code_is_available(url.admin_url):
             url.admin_url = create_random_url()
-
     try:
         db.insert_url(url.admin_url, url.original_url, current_user.username)
-        return (
-            url.admin_url + " -> " + url.original_url + " by. " + current_user.username
+        raise HTTPException(
+            status_code=201,
+            detail=url.admin_url
+            + " -> "
+            + url.original_url
+            + " by. "
+            + current_user.username,
         )
+    except ValueError as error:
+        return str(error)
+
+
+@app.post("/")
+async def create_user(info: UserCreate):
+    """create a new user"""
+    try:
+        db.insert_user(
+            info.username, get_password_hash(info.passwd), info.full_name, info.email
+        )
+        raise HTTPException(status_code=201, detail="User created successfully.")
     except ValueError as error:
         return str(error)
 
@@ -238,7 +273,21 @@ async def delete_url_with_auth_token(
         db.delete_url(url, current_user.username)
         return url + " is successfully deleted.\n"
     except ValueError as error:
-        return str(error)
+        raise_bad_request(str(error))
+
+
+@app.delete("/{username}")
+async def delete_user(
+    username: str, current_user: User = Depends(get_current_active_user)
+):
+    """delete user"""
+    if not username == current_user.username:
+        raise_bad_request("Permission Denied.")
+    try:
+        db.delete_user(username)
+        return username + " is successfully deleted.\n"
+    except ValueError as error:
+        raise_bad_request(str(error))
 
 
 if __name__ == "__main__":
