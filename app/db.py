@@ -134,7 +134,7 @@ def insert_user(name: str, passwd, full_name: str, email: str):
     """add a new user information into database"""
     if not check_username_is_available(name):
         raise ValueError(
-            "The chosen user name is alreadt taken, Please choose a different one."
+            "The chosen user name is alreadt taken, please choose a different one."
         )
 
     conn = sqlite3.connect(DB_PATH)
