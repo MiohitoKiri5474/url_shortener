@@ -92,3 +92,10 @@ def test_add_url_and_delete_url():
     assert url_delete_res.json() == {
         "detail": f"{URL_JSON.get ('admin_url')} is successfully deleted."
     }
+
+
+def test_when_admin_code_is_not_found():
+    """test api when admin code is not found"""
+
+    res = CLIENT.get("/r/lmao")
+    assert res.status_code == 404
