@@ -48,7 +48,7 @@ def insert_url(admin_url: str, ori: str, username: str):
     """add an url shortener into database"""
     if not check_admin_code_is_available(admin_url):
         raise ValueError(
-            "The chosen short code is already taken. Please choose a different one."
+            "The chosen short code is already taken. Please choose a different code."
         )
 
     conn = sqlite3.connect(DB_PATH)

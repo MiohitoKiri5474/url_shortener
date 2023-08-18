@@ -112,3 +112,36 @@ def test_user_is_not_exist():
     res = CLIENT.post("/token", data=user_json)
     assert res.status_code == 400
     assert res.json() == {"detail": "User not found."}
+
+
+def test_add_url_is_already_exist():
+    """test add url which is already exist"""
+
+    login_res = CLIENT.post("/token", data=LOGIN_JSON)
+    assert login_res.status_code == 200
+
+    jwt_token_json = {"Authorization": "Bearer " + login_res.json().get("access_token")}
+
+    url_add_res_first_time = CLIENT.post(
+        "/add_url", headers=jwt_token_json, data=json.dumps(URL_JSON)
+    )
+    assert url_add_res_first_time.status_code == 201
+    assert url_add_res_first_time.json() == {
+        "detail": f"{URL_JSON.get ('admin_url')} -> {URL_JSON.get ('original_url')} by. {USERNAME}"
+    }
+
+    url_add_res_second_time = CLIENT.post(
+        "/add_url", headers=jwt_token_json, data=json.dumps(URL_JSON)
+    )
+    assert url_add_res_second_time.status_code == 400
+    assert url_add_res_second_time.json() == {
+        "detail": "The chosen short code is already taken. Please choose a different code."
+    }
+
+    url_delete_res = CLIENT.delete(
+        "/delete_url/" + URL_JSON.get("admin_url"), headers=jwt_token_json
+    )
+    assert url_delete_res.status_code == 200
+    assert url_delete_res.json() == {
+        "detail": f"{URL_JSON.get ('admin_url')} is successfully deleted."
+    }
