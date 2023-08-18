@@ -145,3 +145,28 @@ def test_add_url_is_already_exist():
     assert url_delete_res.json() == {
         "detail": f"{URL_JSON.get ('admin_url')} is successfully deleted."
     }
+
+
+def test_add_user_is_already_exist():
+    """test add a user which username is already exist"""
+
+    user_json = json.dumps(
+        {
+            "username": "miohitokiri5474",
+            "passwd": "alternate",
+            "full_name": "MiohitoKiri5474",
+            "email": "lltzpp@gmail.com",
+        }
+    )
+
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
+
+    first_time_res = CLIENT.post("/", headers=headers, data=user_json)
+    assert first_time_res.status_code == 201
+    assert first_time_res.json() == {"detail": "User created successfully."}
+
+    second_time_res = CLIENT.post("/", headers=headers, data=user_json)
+    assert second_time_res.status_code == 400
+    assert second_time_res.json() == {
+        "detail": "The chosen user name is alreadt taken, please choose a different one."
+    }
