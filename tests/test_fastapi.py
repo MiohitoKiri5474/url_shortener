@@ -99,3 +99,16 @@ def test_when_admin_code_is_not_found():
 
     res = CLIENT.get("/r/lmao")
     assert res.status_code == 404
+
+
+def test_user_is_not_exist():
+    """test login with username is not found"""
+
+    user_json = {
+        "username": "user_not_found",
+        "password": "what_is_password_can_i_eat_it",
+    }
+
+    res = CLIENT.post("/token", data=user_json)
+    assert res.status_code == 400
+    assert res.json() == {"detail": "User not found."}
