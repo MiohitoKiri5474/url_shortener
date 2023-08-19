@@ -170,3 +170,26 @@ def test_add_user_is_already_exist():
     assert second_time_res.json() == {
         "detail": "The chosen user name is alreadt taken, please choose a different one."
     }
+
+
+def test_list():
+    """test list function"""
+
+    login_res = CLIENT.post("/token", data=LOGIN_JSON)
+    assert login_res.status_code == 200
+
+    jwt_token_json = {"Authorization": "Bearer " + login_res.json().get("access_token")}
+
+    url_add_res = CLIENT.post(
+        "/add_url", headers=jwt_token_json, data=json.dumps(URL_JSON)
+    )
+    assert url_add_res.status_code == 201
+    assert url_add_res.json() == {
+        "detail": f"{URL_JSON.get ('admin_url')} -> {URL_JSON.get ('original_url')} by. {USERNAME}"
+    }
+
+    list_res = CLIENT.get("/list/", headers=jwt_token_json)
+    assert list_res.status_code == 200
+    assert len(list_res.json().get("detail")) == 1
+    assert list_res.json().get("detail")[0][0] == URL_JSON.get("admin_url")
+    assert list_res.json().get("detail")[0][1] == URL_JSON.get("original_url")
