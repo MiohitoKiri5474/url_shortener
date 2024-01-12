@@ -2,6 +2,8 @@
 import os
 import sqlite3
 
+import sqlalchemy
+
 DB_PATH = "url_shortener.db"
 
 
@@ -24,7 +26,7 @@ def build_db():
         """CREATE TABLE IF NOT EXISTS user_mapping (
         name TEXT PRIMARY KEY,
         passwd BLOB,
-        full_name TEXT DEFAULT Nont,
+        full_name TEXT DEFAULT None,
         email TEXT DEFAULT None,
         disable BOOL DEFAULT 1
         )"""
@@ -134,7 +136,7 @@ def insert_user(name: str, passwd, full_name: str, email: str):
     """add a new user information into database"""
     if not check_username_is_available(name):
         raise ValueError(
-            "The chosen user name is alreadt taken, please choose a different one."
+            "The chosen user name is already taken, please choose a different one."
         )
 
     conn = sqlite3.connect(DB_PATH)
@@ -201,3 +203,9 @@ def get_user_info(name: str):
     if result:
         return result[0]
     raise ValueError("User information not found.")
+
+
+def sql_alchemy_testing():
+    """for testing SQLAlchemy"""
+
+    print(sqlalchemy.__version__)
