@@ -168,7 +168,7 @@ def test_add_user_is_already_exist():
     second_time_res = CLIENT.post("/", headers=headers, data=user_json)
     assert second_time_res.status_code == 400
     assert second_time_res.json() == {
-        "detail": "The chosen user name is alreadt taken, please choose a different one."
+        "detail": "The chosen user name is already taken, please choose a different one."
     }
 
 

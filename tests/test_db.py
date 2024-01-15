@@ -73,3 +73,8 @@ def test_get_passwd():
     clear_db()
     db.insert_user(USERNAME, PASSWD, FULL_NAME, EMAIL)
     assert db.get_passwd(USERNAME) == PASSWD
+
+
+def test_selalchemy():
+    """testing sqlalchemy"""
+    assert db.sql_alchemy_testing() is None
