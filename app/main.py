@@ -212,9 +212,11 @@ async def get_current_user_information(
 @app.post("/token")
 async def user_login(form_data: OAuth2PasswordRequestForm = Depends()):
     """user login"""
+    print("\t", form_data.username, form_data.password)
     user_info = authenticate_user(form_data.username, form_data.password)
 
     if not user_info:
+        print("\twtf")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -289,7 +291,7 @@ async def delete_user(
         raise_bad_request(str(error))
 
 
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, reload=True, host="0.0.0.0", port=8000)
+@app.on_event("shutdown")
+def shutdown():
+    """close db when the service shutdown"""
+    db.close_database()
