@@ -191,8 +191,6 @@ def get_passwd(name: str):
     if check_username_is_available(name):
         raise ValueError("User not found.")
 
-    print("\t\tusername is found")
-
     try:
         result = get_user_info(name)[1]
         if result:
