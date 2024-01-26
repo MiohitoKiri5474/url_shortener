@@ -150,7 +150,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
     """get current active user"""
     if not current_user.disable:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise_bad_request("inactive user")
     return current_user
 
 
@@ -177,14 +177,14 @@ if db.check_username_is_available("lltzpp"):
 @app.get("/")
 async def read_root():
     """root"""
-    return "Welcome to the URL shortener API"
+    raise HTTPException(status_code=200, detail="Welcome to the URL shortener API")
 
 
 @app.get("/r/{url}")
 async def get_url(url: str):
     """temporary redirect"""
     if db.check_admin_code_is_available(url):
-        return "This admin url is not exist.\n"
+        raise HTTPException(status_code=404, detail="This admin url is not exist.")
 
     db.update_click_count(url)
 
@@ -194,7 +194,7 @@ async def get_url(url: str):
 @app.get("/list/")
 async def list_url(current_user: User = Depends(get_current_active_user)):
     """list url shortener which is create by current user"""
-    return db.list_url(current_user.username)
+    raise HTTPException(status_code=200, detail=db.list_url(current_user.username))
 
 
 @app.get("/{username}", response_model=User)
@@ -206,15 +206,17 @@ async def get_current_user_information(
         current_user.passwd = b"---"
     else:
         raise_bad_request("Permission Denied.")
-    return current_user
+    raise HTTPException(status_code=200, detail=current_user)
 
 
 @app.post("/token")
 async def user_login(form_data: OAuth2PasswordRequestForm = Depends()):
     """user login"""
+    print("\t", form_data.username, form_data.password)
     user_info = authenticate_user(form_data.username, form_data.password)
 
     if not user_info:
+        print("\twtf")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -242,14 +244,10 @@ async def adding_url_with_auth_token(
         db.insert_url(url.admin_url, url.original_url, current_user.username)
         raise HTTPException(
             status_code=201,
-            detail=url.admin_url
-            + " -> "
-            + url.original_url
-            + " by. "
-            + current_user.username,
+            detail=f"{url.admin_url} -> {url.original_url} by. {current_user.username}",
         )
     except ValueError as error:
-        return str(error)
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @app.post("/")
@@ -261,7 +259,7 @@ async def create_user(info: UserCreate):
         )
         raise HTTPException(status_code=201, detail="User created successfully.")
     except ValueError as error:
-        return str(error)
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @app.delete("/delete_url/{url}")
@@ -271,7 +269,7 @@ async def delete_url_with_auth_token(
     """delete url shortener with admin code"""
     try:
         db.delete_url(url, current_user.username)
-        return url + " is successfully deleted.\n"
+        raise HTTPException(status_code=200, detail=url + " is successfully deleted.")
     except ValueError as error:
         raise_bad_request(str(error))
 
@@ -285,12 +283,15 @@ async def delete_user(
         raise_bad_request("Permission Denied.")
     try:
         db.delete_user(username)
-        return username + " is successfully deleted.\n"
+        raise HTTPException(
+            status_code=200, detail=username + " is successfully deleted."
+        )
+
     except ValueError as error:
         raise_bad_request(str(error))
 
 
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, reload=True, host="0.0.0.0", port=8000)
+@app.on_event("shutdown")
+def shutdown():
+    """close db when the service shutdown"""
+    db.close_database()

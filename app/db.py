@@ -1,45 +1,61 @@
 """database relate"""
-import os
-import sqlite3
 
-DB_PATH = "url_shortener.db"
+from sqlalchemy import Boolean, Column, Integer, String, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+DB_PATH = "sqlite:///data.db"
+BASE = declarative_base()
+
+
+class URLData(BASE):
+    __tablename__ = "URL_data"
+
+    username = Column(String)
+    url = Column(String)
+    admin_url = Column(String, primary_key=True)
+    clicks = Column(Integer)
+
+
+class UserData(BASE):
+    __tablename__ = "user_data"
+
+    username = Column(String, primary_key=True)
+    full_name = Column(String)
+    passwd = Column(String)
+    email = Column(String)
+    disable = Column(Boolean)
+
+
+SESSION = None
+ENGINE = None
 
 
 def build_db():
     """create database if DB_PATH is not exist"""
-    if os.path.exists(DB_PATH):
-        return
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        """CREATE TABLE IF NOT EXISTS url_mapping (
-        code TEXT PRIMARY KEY,
-        url TEXT,
-        username TEXT,
-        clicks INTEGER DEFAULT 0
-        )"""
-    )
-    conn.commit()
-    cursor.execute(
-        """CREATE TABLE IF NOT EXISTS user_mapping (
-        name TEXT PRIMARY KEY,
-        passwd BLOB,
-        full_name TEXT DEFAULT Nont,
-        email TEXT DEFAULT None,
-        disable BOOL DEFAULT 1
-        )"""
-    )
-    conn.commit()
-    conn.close()
+
+    global BASE, SESSION, ENGINE
+
+    ENGINE = create_engine(DB_PATH, echo=True)
+    BASE.metadata.create_all(bind=ENGINE)
+    session = sessionmaker(bind=ENGINE)
+    SESSION = session()
+
+
+def close_database():
+    """close the session when the service shutdown"""
+
+    global SESSION
+
+    SESSION.close()
 
 
 def check_admin_code_is_available(admin_url: str):
     """check admin code is available of not before adding a new url shortenet into database"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT code FROM url_mapping WHERE code = ?", (admin_url,))
-    result = cursor.fetchone()
-    conn.close()
+
+    session = sessionmaker(bind=ENGINE)
+
+    result = session().query(URLData).filter_by(admin_url=admin_url).first()
 
     return result is None
 
@@ -48,132 +64,134 @@ def insert_url(admin_url: str, ori: str, username: str):
     """add an url shortener into database"""
     if not check_admin_code_is_available(admin_url):
         raise ValueError(
-            "The chosen short code is already taken. Please choose a different one."
+            "The chosen short code is already taken. Please choose a different code."
         )
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO url_mapping (code, url, username) VALUES (?, ?, ?)",
-        (admin_url, ori, username),
+    global SESSION
+
+    new_data = URLData(
+        username=username,
+        url=ori,
+        admin_url=admin_url,
+        clicks=0,
     )
-    conn.commit()
-    conn.close()
+
+    SESSION.add(new_data)
+    SESSION.commit()
 
 
 def update_click_count(admin_url: str):
     """update click count after every redirect"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE url_mapping SET clicks = clicks + ? WHERE code = ?", (1, admin_url)
-    )
-    conn.commit()
-    conn.close()
+
+    global SESSION
+
+    modify_data = SESSION.query(URLData).filter_by(admin_url=admin_url).first()
+
+    if modify_data:
+        modify_data.clicks = modify_data.clicks + 1
+        SESSION.commit()
 
 
-def query(url: str):
+def query(admin_url: str):
     """query original url by admin code from database"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT url FROM url_mapping WHERE code = ?", (url,))
-    result = cursor.fetchone()
-    conn.close()
+
+    global SESSION
+
+    result = SESSION.query(URLData).filter_by(admin_url=admin_url).first()
 
     if result:
-        return result[0]
+        return result.url
+
     return None
 
 
 def delete_url(url: str, username: str):
     """delete url shortener by target user from database"""
-    if check_admin_code_is_available(url):
-        raise ValueError("This admin url is not exist.\n")
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT url FROM url_mapping WHERE code = ? AND username = ?",
-        (url, username),
-    )
-    result = cursor.fetchone()
-    if result is None:
+    global SESSION
+
+    result = SESSION.query(URLData).filter_by(admin_url=url, username=username).first()
+
+    if result:
+        SESSION.delete(result)
+        SESSION.commit()
+    else:
         raise ValueError("This admin url is not exist or is not created by this user.")
-    cursor.execute(
-        "DELETE FROM url_mapping WHERE code = ? AND username = ?", (url, username)
-    )
-    conn.commit()
-    conn.close()
 
 
 def list_url(username: str):
     """list out all url shortener create by target user"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT code, url, clicks FROM url_mapping WHERE username = ?", (username,)
-    )
-    all_mappings = cursor.fetchall()
-    cursor.close()
 
-    return all_mappings
+    global SESSION
+
+    result = SESSION.query(URLData).filter_by(username=username).all()
+    res = []
+    for i in result:
+        res.append([i.admin_url, i.url, i.clicks])
+
+    return res
 
 
 def check_username_is_available(name: str):
     """check username is available or not before add a new user into database"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM user_mapping WHERE name = ?", (name,))
-    result = cursor.fetchone()
-    conn.close()
+
+    global SESSION
+
+    result = SESSION.query(UserData).filter_by(username=name).first()
 
     return result is None
 
 
 def insert_user(name: str, passwd, full_name: str, email: str):
     """add a new user information into database"""
+
     if not check_username_is_available(name):
         raise ValueError(
-            "The chosen user name is alreadt taken, please choose a different one."
+            "The chosen user name is already taken, please choose a different one."
         )
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO user_mapping (name, passwd, full_name, email) VALUES (?, ?, ?, ?)",
-        (name, passwd, full_name, email),
+    global SESSION
+    new_data = UserData(
+        username=name,
+        full_name=full_name,
+        passwd=passwd,
+        email=email,
+        disable=True,
     )
-    conn.commit()
-    conn.close()
+
+    SESSION.add(new_data)
+    SESSION.commit()
 
 
 def delete_user(name: str):
     """delete user from database"""
     if check_username_is_available(name):
-        raise ValueError("The chosen user name is not in our database.")
+        raise ValueError("The Choosen username is no in our database.")
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM user_mapping WHERE name = ?", (name,))
-    conn.commit()
-    conn.close()
+    global SESSION
+
+    result = SESSION.query(UserData).filter_by(username=name).first()
+
+    if result:
+        SESSION.delete(result)
+        SESSION.commit()
 
 
 def update_user_status(name: str, disable: bool):
     """update user status"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE user_mapping SET disable = ? WHERE name = ?", (disable, name)
-    )
-    conn.commit()
-    conn.close()
+    result = SESSION.query(UserData).filter_by(username=name).first()
+    result.disable = disable
+
+    SESSION.commit()
 
 
 def get_passwd(name: str):
     """get hashed password of target user"""
+
     if check_username_is_available(name):
         raise ValueError("User not found.")
+
+    print("\t\tusername is found")
 
     try:
         result = get_user_info(name)[1]
@@ -186,18 +204,21 @@ def get_passwd(name: str):
 
 def get_user_info(name: str):
     """get user information from database"""
+
     if check_username_is_available(name):
         raise ValueError("User not found.")
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT name, passwd, full_name, email, disable FROM user_mapping WHERE name = ?",
-        (name,),
-    )
-    result = cursor.fetchall()
-    conn.close()
+    global SESSION
+
+    result = SESSION.query(UserData).filter_by(username=name).first()
 
     if result:
-        return result[0]
+        return [
+            result.username,
+            result.passwd,
+            result.full_name,
+            result.email,
+            result.disable,
+        ]
+
     raise ValueError("User information not found.")
