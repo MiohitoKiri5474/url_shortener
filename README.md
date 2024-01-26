@@ -6,24 +6,24 @@ This is a URL Shortener API (but it still working on log-in system).
 
 1. Python3
 1. FastAPI
-2. Uvicorn
-3. SQLite3
-4. Pydantic
-5. bcrypt
-6. python-multipart
-7. python-jose
-8. passlib
-9. requests
-10. pytest
+1. Uvicorn
+1. SQLite3
+1. Pydantic
+1. bcrypt
+1. python-multipart
+1. python-jose
+1. passlib
+1. requests
+1. pytest
 
 ## Installation
 
 ```sh=
-pip3 install fastapi pysqlite3 uvicorn pydantic bcrypt python-multipart python-jose passlib requests pytest
+make install
 ```
 
 ## Run
 
 ```sh=
-uvicorn main:app --reload
+make run
 ```
