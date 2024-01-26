@@ -4,6 +4,7 @@ testing fastapi
 
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -26,6 +27,7 @@ def test_homepage():
     assert res.json() == {"detail": "Welcome to the URL shortener API"}
 
 
+@pytest.mark.create
 def test_login():
     """test service logon"""
 
@@ -66,6 +68,7 @@ def test_add_user_and_delete_user():
     assert res.status_code == 200
 
 
+@pytest.mark.create
 def test_add_url_and_delete_url():
     """test add/delete url shortener after login"""
 
@@ -114,6 +117,7 @@ def test_user_is_not_exist():
     assert res.json() == {"detail": "User not found."}
 
 
+@pytest.mark.create
 def test_add_url_is_already_exist():
     """test add url which is already exist"""
 
@@ -172,9 +176,9 @@ def test_add_user_is_already_exist():
     }
 
 
+@pytest.mark.create
 def test_list():
     """test list function"""
-
     login_res = CLIENT.post("/token", data=LOGIN_JSON)
     assert login_res.status_code == 200
 
