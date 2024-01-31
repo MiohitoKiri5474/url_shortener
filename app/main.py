@@ -48,8 +48,8 @@ class UserCreate(BaseModel):
 
     username: str
     passwd: str
-    full_name: Union[str, None] = None
-    email: Union[str, None] = None
+    full_name: str
+    email: str
 
 
 class Token(BaseModel):

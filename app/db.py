@@ -27,7 +27,7 @@ class UserData(BASE):
     disable = Column(Boolean)
 
 
-SESSION = None
+SESSION = sessionmaker()()
 ENGINE = None
 
 
@@ -92,7 +92,7 @@ def update_click_count(admin_url: str):
         SESSION.commit()
 
 
-def query(admin_url: str):
+def query(admin_url: str) -> str:
     """query original url by admin code from database"""
 
     global SESSION
@@ -102,7 +102,7 @@ def query(admin_url: str):
     if result:
         return result.url
 
-    return None
+    return ""
 
 
 def delete_url(url: str, username: str):
