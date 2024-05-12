@@ -10,3 +10,6 @@ run:
 lint:
 	isort app/*.py tests/*.py
 	black app/*.py tests/*.py
+
+test:
+	poetry run pytest
