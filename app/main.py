@@ -2,6 +2,7 @@
 This is the main file for this project, url shortener.
 It is power by FastAPI, jose, pydantic, passlib.
 """
+
 import random
 from datetime import datetime, timedelta
 from typing import Union

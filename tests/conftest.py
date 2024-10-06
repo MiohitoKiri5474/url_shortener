@@ -1,6 +1,7 @@
 """
 conftest
 """
+
 import os
 
 import pytest

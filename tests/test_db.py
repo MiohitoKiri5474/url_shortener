@@ -1,6 +1,7 @@
 """
 testing database relate
 """
+
 from app import db
 
 USERNAME = "lltzpp"
