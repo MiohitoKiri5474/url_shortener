@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Union
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -68,6 +69,14 @@ class TokenData(BaseModel):
 
 db.build_db()
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4321", "http://localhost:5173"],  # Frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -226,8 +235,13 @@ async def user_login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(
         data={"sub": user_info.username}, expires_delta=access_token_expires
     )
+    print("username: ", form_data.username)
+    print("passwd: ", form_data.password)
+    print(access_token)
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+    # return access_token
 
 
 @app.post("/add_url")
