@@ -180,14 +180,6 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     return encode_jwt
 
 
-if db.check_username_is_available("admin"):
-    db.insert_user("admin", get_password_hash("admin"), "Admin", "admin@admin")
-if db.check_username_is_available("lltzpp"):
-    db.insert_user(
-        "lltzpp", get_password_hash("alternate"), "miohitokiri5474", "lltzpp@gmail.com"
-    )
-
-
 @app.get("/")
 async def read_root():
     """root"""
