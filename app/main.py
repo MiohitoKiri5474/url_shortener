@@ -3,10 +3,12 @@ This is the main file for this project, url shortener.
 It is power by FastAPI, jose, pydantic, passlib.
 """
 
+import os
 import random
 from datetime import datetime, timedelta
 from typing import Union
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -17,7 +19,9 @@ from pydantic import BaseModel
 
 from app import db
 
-SECRET_KEY = "7de99a859d0920dfb46628ab5af61dad0d618072863c2005e22cf06390639ca3"
+load_dotenv()
+
+SECRET_KEY = os.getenv("SEC_TOKEN")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
